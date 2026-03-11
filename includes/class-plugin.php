@@ -7,7 +7,9 @@ class Plugin {
     public function init(){
 
         $manager = new WebhookManager();
-        new AdminUI($manager);
+
+        new AdminUI();
+        $manager->registerHooks();
 
     }
 

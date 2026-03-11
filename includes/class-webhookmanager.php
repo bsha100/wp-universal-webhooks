@@ -4,50 +4,66 @@ namespace WPUniversalWebhooks;
 
 class WebhookManager {
 
-    public function __construct(){
-        // Hook into some example WordPress events
-        add_action('publish_post', [$this,'triggerPostPublished'], 10, 2);
-        add_action('user_register', [$this,'triggerUserRegistered'], 10, 1);
+    public function registerHooks(){
+
+        add_action('publish_post', [$this,'postPublished'],10,2);
+        add_action('user_register', [$this,'userRegistered'],10,1);
+
     }
 
-    public function triggerPostPublished($post_ID, $post){
+    public function postPublished($post_ID,$post){
 
-        $payload = [
-            'post_id' => $post_ID,
-            'post_title' => $post->post_title,
-            'post_url' => get_permalink($post_ID)
+        $data = [
+            'post_id'=>$post_ID,
+            'post_title'=>$post->post_title,
+            'post_url'=>get_permalink($post_ID)
         ];
 
-        $this->sendWebhooks('post_published', $payload);
+        $this->sendWebhooks('post_published',$data);
 
     }
 
-    public function triggerUserRegistered($user_id){
+    public function userRegistered($user_id){
 
         $user = get_userdata($user_id);
-        $payload = [
-            'user_id' => $user_id,
-            'user_email' => $user->user_email
+
+        $data = [
+            'user_id'=>$user_id,
+            'user_email'=>$user->user_email
         ];
 
-        $this->sendWebhooks('user_registered', $payload);
+        $this->sendWebhooks('user_registered',$data);
 
     }
 
-    public function sendWebhooks($event, $payload){
+    public function sendWebhooks($event,$data){
 
-        $endpoints = get_option("wpunw_endpoints_{$event}", []);
+        $webhooks = get_option('wpunw_webhooks',[]);
 
-        foreach($endpoints as $endpoint){
+        foreach($webhooks as $hook){
 
-            wp_remote_post($endpoint['url'], [
-                'body' => json_encode($payload),
-                'headers' => $endpoint['headers'] ?? ['Content-Type'=>'application/json'],
-                'timeout' => 5
+            if($hook['event'] !== $event){
+                continue;
+            }
+
+            $payload_template = $hook['payload'];
+
+            foreach($data as $key=>$value){
+
+                $payload_template = str_replace("{".$key."}",$value,$payload_template);
+
+            }
+
+            $headers = $hook['headers'] ?? ['Content-Type'=>'application/json'];
+
+            wp_remote_post($hook['url'],[
+                'body'=>$payload_template,
+                'headers'=>$headers,
+                'timeout'=>5
             ]);
 
-            // Log the request
-            Logger::log($event, $payload, $endpoint['url']);
+            Logger::log($event,$payload_template,$hook['url']);
+
         }
 
     }

@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: WP Universal Webhooks
-Description: Send WordPress events to any external endpoint via webhooks.
+Description: Send WordPress events to external services using configurable webhooks.
 Version: 1.0
-Author: Brian Shah
+Author: Example Developer
 */
 
 if(!defined('ABSPATH')) exit;
